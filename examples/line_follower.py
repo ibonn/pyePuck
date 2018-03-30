@@ -54,7 +54,7 @@ def error(text):
 	
 	print(''.join((red, '[Error] ', off, str(text))))
 	
-def main(mac):
+def run(mac):
 	
 	global_speed = 180
 	fs_speed = 0.6
@@ -96,10 +96,18 @@ def main(mac):
 			prox_sensors = robot.get_proximity()
 			
 			# line_follower
-			delta = floor_sensors[2] - floor_sensors[0]
-			l_speed = global_speed - fs_speed * delta
-			r_speed = global_speed + fs_speed * delta
-
+			delta = abs(floor_sensors[2] - floor_sensors[0])
+			
+			if floor_sensors[2] < 0 and floor_sensors[0] > 0:
+				l_speed = global_speed - fs_speed * delta
+				r_speed = global_speed + fs_speed * delta
+			elif floor_sensors[2] > 0 and floor_sensors[0] < 0:
+				l_speed = global_speed + fs_speed * delta
+				r_speed = global_speed - fs_speed * delta
+			else:
+				l_speed = global_speed
+				r_speed = global_speed
+				
 			# Now, we set the motor speed. Remember that we need to execute 'step()'
 			# for make this command effective
 			robot.set_motors_speed(l_speed, r_speed)
@@ -124,18 +132,4 @@ def main(mac):
 
 	return 0
 
-if __name__ == '__main__':
-	X = '([a-fA-F0-9]{2}[:|\-]?){6}'
-	if len(sys.argv) < 2:
-		error("Usage: " + sys.argv[0] + " ePuck_ID | MAC Address")
-		sys.exit()
-	robot_id = sys.argv[1]
-	
-	if epucks.has_key(robot_id):
-		main(epucks[robot_id])
-		
-	elif re.match(X, robot_id) != 0:
-		main(robot_id)
-	
-	else:
-		error('You have to indicate the MAC direction of the robot')
+run('127.0.0.1')

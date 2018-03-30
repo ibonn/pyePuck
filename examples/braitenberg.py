@@ -49,7 +49,7 @@ def error(text):
 	
 	print(''.join((red, '[Error] ', off, str(text))))
 
-def main(mac):
+def run(mac):
 	
 	log('Connecting with the ePuck')
 	try:
@@ -94,14 +94,15 @@ def main(mac):
 				# We need to recenter the value of the sensor to be able to get
 				# negative values too. This will allow the wheels to go 
 				# backward too.
-				wheels[w] += matrix[s][w] * (1.0 - (prox_sensors[s] / 512))
-			
+				wheels[w] += 2 * int(matrix[s][w] * (1.0 - (prox_sensors[s] / 512)))
+				
 			# Now, we set the motor speed. Remember that we need to execute 'step()'
 			# for make this command effective
 			robot.set_motors_speed(wheels[0], wheels[1])
 			
 	except KeyboardInterrupt:
 		log('Stoping the robot. Bye!')
+		robot.stop()
 		robot.close()
 		sys.exit()
 	except Exception, e:
@@ -109,19 +110,5 @@ def main(mac):
 
 	return 0
 
-if __name__ == '__main__':
-	X = '([a-fA-F0-9]{2}[:|\-]?){6}'
-	if len(sys.argv) < 2:
-		error("Usage: " + sys.argv[0] + " ePuck_ID | MAC Address")
-		sys.exit()
-	robot_id = sys.argv[1]
-	
-	if epucks.has_key(robot_id):
-		main(epucks[robot_id])
-		
-	elif re.match(X, robot_id) != 0:
-		main(robot_id)
-	
-	else:
-		error('You have to indicate the MAC direction of the robot')
+run('127.0.0.1')
 	
