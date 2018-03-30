@@ -51,11 +51,11 @@
 #
 #		For further information and updates visit http://abitworld.com/projects
 
-import sys			# System library
-import bluetooth	# Used for communications
-import time			# Used for image capture process
-import struct 		# Used for Big-Endian messages
-import Image  		# Used for the pictures of the camera
+import sys				# System library
+import socket			# Used for communications
+import time				# Used for image capture process
+import struct			# Used for Big-Endian messages
+from PIL import Image	# Used for the pictures of the camera
 
 __package__ = "ePuck"
 __docformat__ = "restructuredtext"  
@@ -110,7 +110,7 @@ class ePuck():
 	This class represent an ePuck object
 	"""
 	
-	def __init__(self, address, debug = False):
+	def __init__(self, address, port = 15000, debug = False):
 		"""
 		Constructor process
 		
@@ -131,6 +131,7 @@ class ePuck():
 		# Connection Attributes
 		self.socket = None
 		self.address = address
+		self.port = port
 		self.conexion_status = False
 		
 		# Camera attributes
@@ -194,7 +195,7 @@ class ePuck():
 		try:
 			line = self.socket.recv(n)
 			self.messages_received += 1
-		except bluetooth.btcommon.BluetoothError, e:
+		except Exception, e:
 			txt = 'Bluetooth communication problem: ' + str(e)
 			self._debug(txt)
 			raise Exception, txt
@@ -233,7 +234,7 @@ class ePuck():
 		
 		# Thanks to http://www.dailyenigma.org/e-puck-cam.shtml for
 		# the code for get the image from the camera
-		msg = struct.pack(">bb", - ord("I"), 0)
+		msg = "I"
 		
 		try:
 			n = self._send(msg)
@@ -290,19 +291,22 @@ class ePuck():
 		for m in actuators:
 			if m[0] == 'L':
 				# Leds
-				msg = struct.pack('<bbb', - ord(m[0]), m[1], m[2])
+				msg = ','.join((str(m[0]), str(m[1]), str(m[2])))
+				msg += '\n'
 				n = self._send(msg)
-				self._debug('Binary message sent of [' + str(n) + '] bytes: ' + str(struct.unpack('<bbb', msg)))
+				self._debug('Binary message sent of [' + str(n) + '] bytes: ' + msg)
 				
 			elif m[0] == 'D' or m[0] == 'P':
 				# Set motor speed or set motor position
-				msg = struct.pack('<bhh', - ord(m[0]), m[1], m[2])
+				msg = ','.join((str(m[0]), str(m[1]), str(m[2])))
+				msg += '\n'
 				n = self._send(msg)
-				self._debug('Binary message sent of [' + str(n) + '] bytes: ' + str(struct.unpack('<bhh', msg)))
+				self._debug('Binary message sent of [' + str(n) + '] bytes: ' + msg)
 				
 			else:
 				# Others actuators, parameters are separated by commas
 				msg = ",".join(["%s" % i for i in m])
+				msg += '\n'
 				reply = self.send_and_receive(msg)
 				if reply == 'j':
 					self._refresh_camera_parameters()
@@ -328,13 +332,14 @@ class ePuck():
 			# Auxiliar function for sent messages in binary modes
 			# Parameters: ('Char to be sent', 'Size of reply waited', 'Format of the teply')
 			
-			self._debug('Sending binary message: ', ','.join('%s' % i for i in parameters))
-			message = struct.pack(">bb", - ord(parameters[0]), 0)
+			message = str(','.join('%s' % i for i in parameters))
+			message += '\n'
+			self._debug('Sending binary message: ', message)
 			self._send(message)
 			reply = self._recv()
 			while len(reply) < parameters[1]:
 				reply += self._recv()
-			reply = struct.unpack(parameters[2], reply)
+			reply = tuple(int(i) for i in reply.split(','))
 			
 			self._debug('Binary message recived: ', reply)
 			return reply
@@ -431,8 +436,8 @@ class ePuck():
 			self._debug('Already connected')
 			return False
 		try:
-			self.socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
-			self.socket.connect((self.address, 1))
+			self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+			self.socket.connect((self.address, self.port))
 			self.socket.settimeout(0.5)
 			
 		except Exception, e:
@@ -977,4 +982,3 @@ class ePuck():
 		if self._cam_enable and time.time() - self.timestamp > 1:
 			self._read_image()
 			self.timestamp = time.time()
-
