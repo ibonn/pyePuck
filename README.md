@@ -1,4 +1,8 @@
 # pyePuck for robotBox
+
+![Braitenberg example](images/braitenberg.gif)
+![Line follower example](images/line_follower.gif)
+
 This is an adapted version of the [pyePuck](https://github.com/mmartinortiz/pyePuck) library to control the e-puck robot
 on the [robotBox](https://github.com/ibonn/robotBox) simulator.
 The usage is exactly the same, so you don't have to change your code when you use it with with a real e-puck
